@@ -1,0 +1,38 @@
+﻿@model PFM.Models.ViewModels.LoginViewModel
+
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+@using (Html.BeginForm())
+{
+    @Html.ValidationSummary(true)
+    <table>
+        <tr>
+            <td>
+                <label>Email:</label>
+            </td>
+            <td>
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <label>Password:</label>
+            </td>
+            <td>
+                @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+            </td>
+        </tr>
+        <tr>
+            <td rowspan="2">
+                <button type="submit" class="text-right">Login</button>
+            </td>
+        </tr>
+    </table>
+}
+
+
