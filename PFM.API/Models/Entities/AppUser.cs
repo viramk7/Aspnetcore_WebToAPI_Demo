@@ -8,5 +8,6 @@ namespace PFM.API.Models.Entities
 {
     public class AppUser : IdentityUser
     {
+        public string RefreshToken { get; set; }
     }
 }

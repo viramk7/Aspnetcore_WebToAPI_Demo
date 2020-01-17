@@ -12,6 +12,10 @@ using System;
 using Polly;
 using System.Net.Http;
 using System.Net;
+using PFM.Models.InputDtos;
+using PFM.Models.OutputDtos;
+using System.Security.Claims;
+using PFM.Models.Dtos;
 
 namespace PFM
 {
@@ -27,19 +31,33 @@ namespace PFM
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHttpClient<HttpClient>();
+            services.AddHttpClient<HttpClientHelper>()
+                .AddPolicyHandler((provider, request) =>
+                {
+                    return
+                        Policy
+                            .HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
+                            .RetryAsync(1, async (response, retryCount, context) =>
+                            {
+                                var client = provider.GetRequiredService<HttpClientHelper>();
+                                var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
 
-            //services.AddHttpClient<HttpClientHelper>()
-            //    .AddPolicyHandler((provider, request) =>
-            //    {
-            //        return
-            //            Policy
-            //                .HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
-            //                .RetryAsync(1, (response, retryCount, context) =>
-            //                {
-            //                    var client = provider.GetRequiredService<HttpClientHelper>();
-            //                    // refresh auth token.
-            //                });
-            //    });
+                                var uri = "api/auth/refresh-token";
+                                var refreshData = new RefreshTokenInputDto
+                                {
+                                    Email = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value,
+                                    RefreshToken = httpContextAccessor.HttpContext.Session.GetString("refresh_token")
+                                };
+                                var newTokens = 
+                                await client.Post<RefreshTokenInputDto, LoginDto>(uri, refreshData);
+
+                                httpContextAccessor.HttpContext.Session.SetString("access_token", newTokens.AccessToken.Token);
+                                httpContextAccessor.HttpContext.Session.SetString("refresh_token", newTokens.RefreshToken);
+
+                                // refresh auth token.
+                            });
+                });
 
             services.AddDistributedMemoryCache();
 
@@ -53,7 +71,7 @@ namespace PFM
             });
 
             services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddTransient<IHttpClientHelper, HttpClientHelper>();
+            //services.AddTransient<IHttpClientHelper, HttpClientHelper>();
             services.AddTransient<IStudentService, StudentService>();
             services.AddTransient<IAuthService, AuthService>();
 

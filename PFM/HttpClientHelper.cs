@@ -11,10 +11,15 @@ namespace PFM
         private readonly HttpClient _client;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public HttpClientHelper(HttpClient client, IHttpContextAccessor httpContextAccessor)
+        public HttpClientHelper()
         {
-            _client = client;
-            _client.BaseAddress = new Uri("https://localhost:44355/");
+
+        }
+
+        public HttpClientHelper(HttpClient httpClient, IHttpContextAccessor httpContextAccessor)
+        {
+            _client = httpClient;
+            _client.BaseAddress = new Uri("https://localhost:5001/");
             _client.DefaultRequestHeaders.Clear();
             _httpContextAccessor = httpContextAccessor;
         }
@@ -49,6 +54,7 @@ namespace PFM
 
             return default;
         }
+
 
         #region Private Methods
 

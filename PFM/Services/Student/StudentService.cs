@@ -10,7 +10,7 @@ namespace PFM.Services
     {
         private readonly IHttpClientHelper _httpClient;
 
-        public StudentService(IHttpClientHelper httpClient)
+        public StudentService(HttpClientHelper httpClient)
         {
             _httpClient = httpClient;
         }

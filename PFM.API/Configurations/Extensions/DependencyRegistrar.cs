@@ -15,6 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddTransient<IJwtFactory, JwtFactory>();
             services.AddTransient<IJwtTokenHandler, JwtTokenHandler>();
+            services.AddTransient<ITokenFactory, TokenFactory>();
 
             return services;
         }

@@ -9,7 +9,7 @@ namespace PFM.Services
     {
         private readonly IHttpClientHelper _httpClient;
 
-        public AuthService(IHttpClientHelper httpClient)
+        public AuthService(HttpClientHelper httpClient)
         {
             _httpClient = httpClient;
         }
