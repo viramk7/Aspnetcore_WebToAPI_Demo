@@ -8,6 +8,10 @@ using Microsoft.Extensions.Hosting;
 using PFM.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System;
+using Polly;
+using System.Net.Http;
+using System.Net;
 
 namespace PFM
 {
@@ -23,6 +27,31 @@ namespace PFM
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            //services.AddHttpClient<HttpClientHelper>()
+            //    .AddPolicyHandler((provider, request) =>
+            //    {
+            //        return
+            //            Policy
+            //                .HandleResult<HttpResponseMessage>(r => r.StatusCode == HttpStatusCode.Unauthorized)
+            //                .RetryAsync(1, (response, retryCount, context) =>
+            //                {
+            //                    var client = provider.GetRequiredService<HttpClientHelper>();
+            //                    // refresh auth token.
+            //                });
+            //    });
+
+            services.AddDistributedMemoryCache();
+
+            services.AddSession(options =>
+            {
+                // Set a short timeout for easy testing.
+                options.IdleTimeout = TimeSpan.FromDays(10);
+                options.Cookie.HttpOnly = true;
+                // Make the session cookie essential
+                options.Cookie.IsEssential = true;
+            });
+
             services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddTransient<IHttpClientHelper, HttpClientHelper>();
             services.AddTransient<IStudentService, StudentService>();
@@ -54,7 +83,7 @@ namespace PFM
 
             app.UseAuthentication();
             app.UseAuthorization();
-
+            app.UseSession();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(

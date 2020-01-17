@@ -11,9 +11,9 @@ namespace PFM
         private readonly HttpClient _client;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public HttpClientHelper(IHttpContextAccessor httpContextAccessor)
+        public HttpClientHelper(HttpClient client, IHttpContextAccessor httpContextAccessor)
         {
-            _client = new HttpClient();
+            _client = client;
             _client.BaseAddress = new Uri("https://localhost:44355/");
             _client.DefaultRequestHeaders.Clear();
             _httpContextAccessor = httpContextAccessor;
@@ -51,10 +51,42 @@ namespace PFM
         }
 
         #region Private Methods
-        
+
+        //private AsyncRetryPolicy<HttpResponseMessage> CreateTokenRefreshPolicy(Func<string, Task> tokenRefreshed)
+        //{
+        //    var policy = Policy
+        //        .HandleResult<HttpResponseMessage>(message => message.StatusCode == HttpStatusCode.Unauthorized)
+        //        .RetryAsync(1, async (result, retryCount, context) =>
+        //        {
+        //            if (context.ContainsKey("refresh_token"))
+        //            {
+        //                var newAccessToken = await RefreshAccessToken(context["refresh_token"].ToString());
+        //                if (newAccessToken != null)
+        //                {
+        //                    await tokenRefreshed(newAccessToken);
+
+        //                    context["access_token"] = newAccessToken;
+        //                }
+        //            }
+        //        });
+
+        //    return policy;
+        //}
+
+        //private async Task<string> RefreshAccessToken(string refreshToken)
+        //{
+        //    var tokenResponse = string.Empty;
+
+        //    // return null if we cannot request a new token
+        //    return tokenResponse;
+        //}
+
+
         private string RetrieveAccessTokenFromUser()
         {
-            return _httpContextAccessor.HttpContext.User.FindFirst("access_token")?.Value;
+            //return _httpContextAccessor.HttpContext.User.FindFirst("access_token")?.Value;
+
+            return _httpContextAccessor.HttpContext.Session.GetString("access_token");
         }
 
         private void SetAuthHeader()
