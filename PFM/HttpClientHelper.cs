@@ -3,6 +3,12 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
+using Polly;
+using System.Net;
+using Polly.Retry;
+using PFM.Models.InputDtos;
+using PFM.Models.Dtos;
+using System.Security.Claims;
 
 namespace PFM
 {
@@ -11,14 +17,9 @@ namespace PFM
         private readonly HttpClient _client;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public HttpClientHelper()
+        public HttpClientHelper(IHttpContextAccessor httpContextAccessor)
         {
-
-        }
-
-        public HttpClientHelper(HttpClient httpClient, IHttpContextAccessor httpContextAccessor)
-        {
-            _client = httpClient;
+            _client = new HttpClient();
             _client.BaseAddress = new Uri("https://localhost:5001/");
             _client.DefaultRequestHeaders.Clear();
             _httpContextAccessor = httpContextAccessor;
@@ -26,14 +27,22 @@ namespace PFM
 
         public async Task<TEntity> Get<TEntity>(string url)
         {
-            SetAuthHeader();
-            var result = await _client.GetAsync(url);
+            var policy = CreateTokenRefreshPolicy();
+
+            var result = await policy.ExecuteAsync(async () => 
+            {
+                SetAuthHeader();
+                return await _client.GetAsync(url);
+            });
+
             if (result.IsSuccessStatusCode)
             {
                 return await result.Content.ReadAsAsync<TEntity>();
             }
 
             return default;
+
+
         }
 
         public async Task Post<Tin>(string uri, Tin entity)
@@ -55,37 +64,40 @@ namespace PFM
             return default;
         }
 
-
         #region Private Methods
 
-        //private AsyncRetryPolicy<HttpResponseMessage> CreateTokenRefreshPolicy(Func<string, Task> tokenRefreshed)
-        //{
-        //    var policy = Policy
-        //        .HandleResult<HttpResponseMessage>(message => message.StatusCode == HttpStatusCode.Unauthorized)
-        //        .RetryAsync(1, async (result, retryCount, context) =>
-        //        {
-        //            if (context.ContainsKey("refresh_token"))
-        //            {
-        //                var newAccessToken = await RefreshAccessToken(context["refresh_token"].ToString());
-        //                if (newAccessToken != null)
-        //                {
-        //                    await tokenRefreshed(newAccessToken);
+        private AsyncRetryPolicy<HttpResponseMessage> CreateTokenRefreshPolicy()
+        {
+            var policy = Policy
+                .HandleResult<HttpResponseMessage>(message => message.StatusCode == HttpStatusCode.Unauthorized)
+                .RetryAsync(1, async (result, retryCount, context) =>
+                {
+                    var refreshToken = _httpContextAccessor.HttpContext.Session.GetString("refresh_token");
 
-        //                    context["access_token"] = newAccessToken;
-        //                }
-        //            }
-        //        });
+                    if (!string.IsNullOrEmpty(refreshToken))
+                    {
+                        await RefreshAccessToken(refreshToken);
+                    }
+                });
 
-        //    return policy;
-        //}
+            return policy;
+        }
 
-        //private async Task<string> RefreshAccessToken(string refreshToken)
-        //{
-        //    var tokenResponse = string.Empty;
+        private async Task RefreshAccessToken(string refreshToken)
+        {
+            var session = _httpContextAccessor.HttpContext.Session;
 
-        //    // return null if we cannot request a new token
-        //    return tokenResponse;
-        //}
+            var uri = "api/auth/refresh-token";
+            var refreshData = new RefreshTokenInputDto
+            {
+                Email = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.Name).Value,
+                RefreshToken = refreshToken
+            };
+            var newTokens = await Post<RefreshTokenInputDto, LoginDto>(uri, refreshData);
+
+            session.SetString("access_token", newTokens.AccessToken.Token);
+            session.SetString("refresh_token", newTokens.RefreshToken);
+        }
 
 
         private string RetrieveAccessTokenFromUser()

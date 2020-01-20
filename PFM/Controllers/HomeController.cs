@@ -28,12 +28,12 @@ namespace PFM.Controllers
         {
             try
             {
-                var studentToCreate = new Student
-                {
-                    Name = "Shruti"
-                };
+                //var studentToCreate = new Student
+                //{
+                //    Name = "Shruti"
+                //};
 
-                var createdStudent = await _studentService.PostStudent(studentToCreate);
+                //var createdStudent = await _studentService.PostStudent(studentToCreate);
 
                 var students = await _studentService.GetStudents();
             }
